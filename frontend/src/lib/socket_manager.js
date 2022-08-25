@@ -8,12 +8,12 @@ export default class SocketManager {
         this.socket = socket
 
         socket.on("connect", () => {
-            console.log("register", player)
+            // console.log("register", player)
             socket.emit("addPlayer", player)
         })
 
         socket.on("latest_state", (state) => {
-            console.log("latest_state", state)
+            // console.log("latest_state", state)
 
             gameRef.current = new Game({})
             Object.assign(gameRef.current, state)
@@ -22,7 +22,7 @@ export default class SocketManager {
 
         socket.on("game_event", (event) => {
             console.log("game_event", JSON.stringify(event, 0, 2))
-            console.log("game_event:state", JSON.stringify(gameRef.current, 0, 2))
+            // console.log("game_event:state", JSON.stringify(gameRef.current, 0, 2))
 
             if (!gameRef.current) {
                 gameRef.current = new Game({})
@@ -30,8 +30,8 @@ export default class SocketManager {
             gameRef.current.applyEvent(event)
             setGameStep(gameRef.current.step)
 
-            console.log("game_event:state_next", JSON.stringify(gameRef.current, 0, 2))
-            console.log(gameRef.current)
+            // console.log("game_event:state_next", JSON.stringify(gameRef.current, 0, 2))
+            // console.log(gameRef.current)
         })
     }
 

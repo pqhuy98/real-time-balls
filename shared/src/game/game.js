@@ -1,4 +1,4 @@
-const { add, normalize, clip } = require("../lib/linear_algebra")
+const { add, normalize, clip, mul } = require("../lib/linear_algebra")
 const Player = require("./player")
 
 class Game {
@@ -10,9 +10,17 @@ class Game {
         this.step = 0
 
         // all public methods will trigger event handlers
-        this.publicMethods = []
         this.eventHandlers = []
         this._bootstrapPublicMethodHandlers()
+    }
+
+    get publicMethods() {
+        return [
+            this.addPlayer,
+            this.playerConnect,
+            this.playerDisconnect,
+            this.serverTick,
+        ]
     }
 
     get dataAttributes() {
@@ -25,31 +33,16 @@ class Game {
         ]
     }
 
-    addPlayer({ playerId, name }) {
+    addPlayer({ playerId, name, unitCount }) {
         if (playerId in this.players) {
             throw new Error("Player is already connected!")
         }
-        let seed = parseInt(playerId.slice(-9), 16)
-        seed = seed ^ (seed >> 4)
         let player = new Player({
             id: playerId,
             name,
-            startingPos: {
-                x: seed % 100,
-                y: (seed / 100) % 100,
-            }
+            unitCount: unitCount || 2,
         })
         this.players[player.id] = player
-    }
-
-    playerMove({ playerId, dir }) {
-        if (!(playerId in this.players)) return
-        let unit = this.players[playerId].unit
-        unit.pos = add(unit.pos, normalize(dir))
-        unit.pos = {
-            x: clip(unit.pos.x, 0, 100),
-            y: clip(unit.pos.y, 0, 100),
-        }
     }
 
     playerConnect({ playerId }) {
@@ -59,18 +52,33 @@ class Game {
 
     playerDisconnect({ playerId }) {
         delete this.connectedPlayer[playerId]
-        this.disconnectedPlayer[playerId] = true
+        // this.disconnectedPlayer[playerId] = true
+        delete this.players[playerId]
+    }
+
+    serverTick(deltaT) {
+        for (const playerId in this.players) {
+            let player = this.players[playerId]
+            for (const unit of player.units) {
+                let radius = 2 / 2
+                unit.pos = add(unit.pos, mul(unit.velocity, deltaT))
+                if (unit.pos.x + radius > 100 || unit.pos.x - radius < 0) {
+                    unit.velocity.x *= -1
+                }
+                if (unit.pos.y + radius > 100 || unit.pos.y - radius < 0) {
+                    unit.velocity.y *= -1
+                }
+                unit.pos = {
+                    x: clip(unit.pos.x, radius, 100 - radius),
+                    y: clip(unit.pos.y, radius, 100 - radius),
+                }
+            }
+        }
     }
 
     // Event controllers
 
     _bootstrapPublicMethodHandlers() {
-        this.publicMethods = [
-            this.addPlayer,
-            this.playerMove,
-            this.playerConnect,
-            this.playerDisconnect,
-        ]
         // wrap public methods by a event handler
         let _this = this
         for (const method of this.publicMethods) {

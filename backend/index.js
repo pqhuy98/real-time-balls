@@ -1,7 +1,22 @@
+const { performance } = require('perf_hooks');
 const Game = require("shared/src/game/game")
 
 const game = new Game({ id: "global_game" })
 
+game.addPlayer({
+    playerId: "neutral",
+    name: "NPC",
+    unitCount: 10,
+})
+
+const FPS = 30
+let lastTime = performance.now()
+setInterval(() => {
+    let now = performance.now()
+    let deltaT = (now - lastTime) / 1000 // in seconds
+    lastTime = now
+    game.serverTick(deltaT)
+}, 1000 / FPS)
 
 const app = require("express")()
 const httpServer = require("http").createServer(app)
